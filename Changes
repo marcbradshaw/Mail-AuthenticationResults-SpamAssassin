@@ -1,0 +1,6 @@
+Change log for Mail::AuthenticationResults::SpamAssassin
+
+{{$NEXT}}
+        - Forked from Mail::AuthenticationResults into own repo.
+        - Added a SpamAssassin plugin for parsing headers.
+
