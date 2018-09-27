@@ -13,7 +13,8 @@ perl:
 before_install:
 
 install:
-   - cpanm --quiet --notest Scalar::Util
+    - cpanm --quiet --notest Scalar::Util
+    - cpanm --notest Mail::SpamAssassin
 
 script:
    - HARNESS_IS_VERBOSE=1 prove -v -Ilib t
