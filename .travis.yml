@@ -11,10 +11,11 @@ perl:
   - "5.8"
 
 before_install:
+    - sudo apt-get -y install libssl1.0-dev gcc make
 
 install:
     - cpanm --quiet --notest Scalar::Util
-    - cpanm --notest Mail::SpamAssassin
+    - cpanm --quiet --notest Net::DNS NetAddr::IP Mail::SpamAssassin
 
 script:
    - HARNESS_IS_VERBOSE=1 prove -v -Ilib t
