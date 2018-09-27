@@ -11,10 +11,10 @@ perl:
   - "5.8"
 
 before_install:
+    - sudo apt-get install -y libmail-spamassassin-perl
 
 install:
     - cpanm --quiet --notest Scalar::Util
-    - cpanm --notest Mail::SpamAssassin
 
 script:
    - HARNESS_IS_VERBOSE=1 prove -v -Ilib t
