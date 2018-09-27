@@ -15,7 +15,7 @@ before_install:
 
 install:
     - cpanm --quiet --notest Scalar::Util
-    - cpanm --quiet --notest Net::DNS NetAddr::IP Mail::SpamAssassin
+    - cpanm --quiet --notest Net::DNS NetAddr::IP Mail::SpamAssassin Mail::AuthenticationResults
 
 script:
    - HARNESS_IS_VERBOSE=1 prove -v -Ilib t
