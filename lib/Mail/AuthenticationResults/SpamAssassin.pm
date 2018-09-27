@@ -1,8 +1,6 @@
 package Mail::AuthenticationResults::SpamAssassin;
 use strict;
 use warnings;
-use feature qw(postderef);
-no warnings qw(experimental::postderef); ## no critic
 # ABSTRACT: SpamAssassin plugin for parsing Authentication-Results headers via Mail::AuthenticationResults
 # VERSION
 
@@ -105,13 +103,13 @@ sub _get_authentication_results_objects_for_key {
 sub _entry_has_key {
   # return a count of the subentries with given key
   my ( $self, $authentication_results_object, $key ) = @_;
-  return scalar $authentication_results_object->search({ isa => 'subentry', key => $key })->children()->@*;
+  return scalar @{ $authentication_results_object->search({ isa => 'subentry', key => $key })->children() };
 }
 
 sub _entry_has_key_value {
   # return a count of the subentries with given key and value
   my ( $self, $authentication_results_object, $key, $value ) = @_;
-  return scalar $authentication_results_object->search({ isa => 'subentry', key => $key, value => $value })->children()->@*;
+  return scalar @{ $authentication_results_object->search({ isa => 'subentry', key => $key, value => $value })->children() };
 }
 
 =method I<authentication_results_has_key_value( $key, $value )>
@@ -142,7 +140,7 @@ score SPF_ERROR 1
 sub authentication_results_has_key_value {
   # Returns true if there was a failing sligned-from entry in the results
   my ( $self, $per_msg_status, $key, $value ) = @_;
-  return 1 if ( scalar $self->_get_authentication_results_objects_for_key_value($per_msg_status,$key,$value)->children()->@* > 0 );
+  return 1 if ( scalar @{ $self->_get_authentication_results_objects_for_key_value($per_msg_status,$key,$value)->children() } > 0 );
   return 0;
 }
 
@@ -160,11 +158,11 @@ sub _authentication_results_spf_fail_sub {
   my $domainregex = quotemeta( $domain );
 
   return 1 if scalar
-    $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.mailfrom', value => qr{\@$domainregex$} }] })->children()->@*;
+    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.mailfrom', value => qr{\@$domainregex$} }] })->children() };
   return 1 if scalar
-    $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.helo', value => $domain }] })->children()->@*;
+    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.helo', value => $domain }] })->children() };
   return 1 if scalar
-    $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'policy.authdomain', value => $domain }] })->children()->@*;
+    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'policy.authdomain', value => $domain }] })->children() };
 
   return 0;
 }
@@ -185,7 +183,7 @@ sub authentication_results_spf_fail {
   my ( $self, $per_msg_status ) = @_;
   my $pass = 1;
   my $spf_objects = $self->_get_authentication_results_objects_for_key($per_msg_status,'spf');
-  foreach my $header_object ( $spf_objects->children()->@* ) {
+  foreach my $header_object ( @{ $spf_objects->children() } ) {
     next unless $header_object->value() eq 'fail';
     if ( my $authdomain = eval{ $header_object->search({ isa => 'subentry', key => 'policy.authdomain' })->children()->[0]->value() } ) {
       $pass = $pass && $self->_authentication_results_spf_fail_sub( $per_msg_status, $spf_objects, $authdomain );
@@ -222,7 +220,7 @@ score DMARC_QUARANTINE 10.0
 
 sub authentication_results_dmarc_list_override {
   my ( $self, $per_msg_status ) = @_;
-  foreach my $header_object ( $self->_get_authentication_results_objects_for_key($per_msg_status,'dmarc')->children()->@* ) {
+  foreach my $header_object ( @{ $self->_get_authentication_results_objects_for_key($per_msg_status,'dmarc')->children() } ) {
     next unless $header_object->value() eq 'fail';
     next unless $self->_entry_has_key_value( $header_object, 'policy.arc-aware-result',      'fail' );
     next unless $self->_entry_has_key_value( $header_object, 'policy.applied-disposition',   'none' );
