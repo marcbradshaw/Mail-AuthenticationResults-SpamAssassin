@@ -8,7 +8,6 @@ perl:
   - "5.14"
   - "5.12"
   - "5.10"
-  - "5.8"
 
 before_install:
     - sudo apt-get -y install libssl1.0-dev gcc make

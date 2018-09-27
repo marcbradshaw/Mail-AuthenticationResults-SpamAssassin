@@ -1,4 +1,5 @@
 package Mail::AuthenticationResults::SpamAssassin;
+use 5.010;
 use strict;
 use warnings;
 # ABSTRACT: SpamAssassin plugin for parsing Authentication-Results headers via Mail::AuthenticationResults
