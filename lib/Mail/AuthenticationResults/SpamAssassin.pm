@@ -139,7 +139,7 @@ score SPF_ERROR 1
 =cut
 
 sub authentication_results_has_key_value {
-  # Returns true if there was a failing sligned-from entry in the results
+  # Returns true if there was an entry with the given key and value
   my ( $self, $per_msg_status, $key, $value ) = @_;
   return 1 if ( scalar @{ $self->_get_authentication_results_objects_for_key_value($per_msg_status,$key,$value)->children() } > 0 );
   return 0;
