@@ -58,6 +58,11 @@ sub parse_config {
     $self->{'authserv-id'} = $authserv_id;
     return 1;
   }
+  if ($opts->{key} eq 'authentication_results_spf_keys') {
+    my @spf_keys = split( ',', $opts->{value} );
+    $self->{'spf-keys'} = \@spf_keys;
+    return 1;
+  }
   return 0;
 }
 
@@ -99,6 +104,18 @@ sub _get_authentication_results_objects_for_key_value {
 sub _get_authentication_results_objects_for_key {
   my ( $self, $per_msg_status, $key ) = @_;
   return $self->_get_authentication_results_objects_for_authserv_id($per_msg_status)->search({ isa => 'entry', key => $key });
+}
+
+sub _get_authentication_results_objects_for_keys {
+  my ( $self, $per_msg_status, $keys ) = @_;
+  my $result = Mail::AuthenticationResults::Header::Group->new;
+  foreach my $key ( @$keys ) {
+    my $this_group = $self->_get_authentication_results_objects_for_authserv_id($per_msg_status)->search({ isa => 'entry', key => $key });
+    foreach my $child ( @{$this_group->children()} ) {
+      $result->add_child( $child );
+    }
+  }
+  return $result;
 }
 
 sub _entry_has_key {
@@ -148,6 +165,12 @@ sub authentication_results_has_key_value {
 # Aligned From x-aligned-from
 # Possible values: error null null_smtp null_header pass domain_pass orgdomain_pass fail
 
+sub _keys_for_spf {
+  my ( $self ) = @_;
+  return $self->{'spf-keys'} if exists $self->{'spf-keys'};
+  return [ 'spf' ];
+}
+
 sub _authentication_results_spf_fail_sub {
   my ( $self, $per_msg_status, $spf_objects, $domain ) = @_;
   # Can we override a given domain fail with another spf result in the set.
@@ -158,12 +181,16 @@ sub _authentication_results_spf_fail_sub {
   }
   my $domainregex = quotemeta( $domain );
 
-  return 1 if scalar
-    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.mailfrom', value => qr{\@$domainregex$} }] })->children() };
-  return 1 if scalar
-    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.helo', value => $domain }] })->children() };
-  return 1 if scalar
-    @{ $spf_objects->search({ isa => 'entry', key => 'spf', value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'policy.authdomain', value => $domain }] })->children() };
+  foreach my $key ( @{$self->_keys_for_spf} ) {
+
+    return 1 if scalar
+      @{ $spf_objects->search({ isa => 'entry', key => $key, value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.mailfrom', value => qr{\@$domainregex$} }] })->children() };
+    return 1 if scalar
+      @{ $spf_objects->search({ isa => 'entry', key => $key, value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'smtp.helo', value => $domain }] })->children() };
+    return 1 if scalar
+      @{ $spf_objects->search({ isa => 'entry', key => $key, value => qr{^(?!fail)}, has => [{ isa => 'subentry', key => 'policy.authdomain', value => $domain }] })->children() };
+
+  }
 
   return 0;
 }
@@ -183,7 +210,7 @@ sub authentication_results_spf_fail {
   # De we have any spf fail entries which do not have a corresponding pass entry (from for example, an arc override)
   my ( $self, $per_msg_status ) = @_;
   my $pass = 1;
-  my $spf_objects = $self->_get_authentication_results_objects_for_key($per_msg_status,'spf');
+  my $spf_objects = $self->_get_authentication_results_objects_for_keys($per_msg_status,$self->_keys_for_spf);
   foreach my $header_object ( @{ $spf_objects->children() } ) {
     next unless $header_object->value() eq 'fail';
     if ( my $authdomain = eval{ $header_object->search({ isa => 'subentry', key => 'policy.authdomain' })->children()->[0]->value() } ) {
